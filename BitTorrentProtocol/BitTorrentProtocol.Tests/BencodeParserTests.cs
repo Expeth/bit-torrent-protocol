@@ -23,7 +23,6 @@ namespace BitTorrentProtocol.Tests
         public void TorrentInfo_UbuntuFile()
         {
             TorrentInfo torrentFile = new TorrentInfo();
-            torrentFile.Filename = "ubuntu-19.04-desktop.torrent";
             torrentFile.Announce = "http://torrent.ubuntu.com:6969/announce";
             torrentFile.Comment = "Ubuntu CD releases.ubuntu.com";
             torrentFile.PieceLength = 524288;
@@ -38,8 +37,7 @@ namespace BitTorrentProtocol.Tests
 
             BencodeParser parser = new BencodeParser(_ubuntuFIlePath);
             TorrentInfo expectedTorrentFile = parser.GetTorrentInfo();
-
-            Assert.AreEqual(expectedTorrentFile.Filename, torrentFile.Filename);
+            
             Assert.AreEqual(expectedTorrentFile.Announce, torrentFile.Announce);
             Assert.AreEqual(expectedTorrentFile.Comment, torrentFile.Comment);
             Assert.AreEqual(expectedTorrentFile.PieceLength, torrentFile.PieceLength);
@@ -60,7 +58,6 @@ namespace BitTorrentProtocol.Tests
         public void TorrentInfo_ViyFile()
         {
             TorrentInfo torrentFile = new TorrentInfo();
-            torrentFile.Filename = "viy.torrent";
             torrentFile.Announce = "http://bt4.rutracker.org/ann?uk=wa36F12BA3";
             torrentFile.Comment = "http://rutracker.org/forum/viewtopic.php?t=4390356";
             torrentFile.PieceLength = 262144;
@@ -77,8 +74,7 @@ namespace BitTorrentProtocol.Tests
 
             BencodeParser parser = new BencodeParser(_viyFilePath);
             TorrentInfo expectedTorrentFile = parser.GetTorrentInfo();
-
-            Assert.AreEqual(expectedTorrentFile.Filename, torrentFile.Filename);
+            
             Assert.AreEqual(expectedTorrentFile.Announce, torrentFile.Announce);
             Assert.AreEqual(expectedTorrentFile.Comment, torrentFile.Comment);
             Assert.AreEqual(expectedTorrentFile.PieceLength, torrentFile.PieceLength);

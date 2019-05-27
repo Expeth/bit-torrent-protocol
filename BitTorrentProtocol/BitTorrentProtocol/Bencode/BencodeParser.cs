@@ -16,30 +16,44 @@ namespace BitTorrentProtocol.Bencode
         /// <summary>
         /// StreamReader for reading a file
         /// </summary>
-        private StreamReader _reader;
+        private MemoryStream _reader;
         /// <summary>
         /// Dictionary of all torrent file's information
         /// </summary>
-        private Dictionary<object, object> _torrentFile;
+        private Dictionary<object, object> _parsedBencode;
         /// <summary>
         /// Torrent file's Local path
         /// </summary>
-        private string _torrentPath;
+        private byte[] _bencodeText;
 
         /// <summary>
         /// Creates an instance
         /// </summary>
         /// <param name="torrentPath">Local path to torrent file.</param>
-        public BencodeParser(string torrentPath)
+        public BencodeParser(string filePath)
         {
-            if (!File.Exists(torrentPath) || Path.GetExtension(torrentPath) != ".torrent")
-                throw new ArgumentException("File does not exist or has wrong extension. " + Directory.GetCurrentDirectory());
+            if (!File.Exists(filePath))
+                throw new ArgumentException("File does not exist or has wrong encoding. " + Directory.GetCurrentDirectory());
 
-            _torrentPath = torrentPath;
-            _reader = new StreamReader(torrentPath);
-            _reader.Read();
-            _torrentFile = ReadDictionary();
+            _bencodeText = File.ReadAllBytes(filePath);
+            _reader = new MemoryStream(_bencodeText);
+            _reader.ReadByte();
+            _parsedBencode = ReadDictionary();
             _reader.Dispose();
+        }
+
+        public BencodeParser(byte[] bencodeText)
+        {
+            _bencodeText = bencodeText;
+            _reader = new MemoryStream(_bencodeText);
+            _reader.ReadByte();
+            _parsedBencode = ReadDictionary();
+            _reader.Dispose();
+        }
+
+        public Dictionary<object, object> GetParsedBencode()
+        {
+            return _parsedBencode;
         }
 
         /// <summary>
@@ -52,19 +66,18 @@ namespace BitTorrentProtocol.Bencode
             TorrentInfo file = new TorrentInfo();
 
             // Info dictionary of torrent file
-            Dictionary<object, object> fileInfo = (Dictionary<object, object>)_torrentFile["info"];
+            Dictionary<object, object> fileInfo = (Dictionary<object, object>)_parsedBencode["info"];
 
             // Adding main information about torrent file
-            file.Filename = Path.GetFileName(_torrentPath);
-            file.Comment = _torrentFile["comment"] as string;
-            file.Announce = _torrentFile["announce"] as string;
+            file.Comment = Encoding.UTF8.GetString(_parsedBencode["comment"] as byte[]);
+            file.Announce = Encoding.UTF8.GetString(_parsedBencode["announce"] as byte[]);
             file.InfoHash = ComputeInfoHash(ReadInfoValue());
             file.PieceLength = (int)fileInfo["piece length"];
 
             // Adding announce-list (trackers)
-            foreach (var lists in (List<object>)_torrentFile["announce-list"])
+            foreach (var lists in (List<object>)_parsedBencode["announce-list"])
                 foreach (var announce in (List<object>)lists)
-                    file.AnnounceList.Add(announce as string);
+                    file.AnnounceList.Add(Encoding.UTF8.GetString(announce as byte[]));
 
             // If info dictionary in multi file mode
             try
@@ -79,7 +92,7 @@ namespace BitTorrentProtocol.Bencode
 
                     string path = "";
                     foreach (var j in (List<object>)((Dictionary<object, object>)i)["path"])
-                        path += (j as string) + "/";
+                        path += Encoding.UTF8.GetString(j as byte[]) + "/";
 
                     // Removing last '/' from file path
                     path = path.Remove(path.LastIndexOf('/'), 1);
@@ -95,7 +108,7 @@ namespace BitTorrentProtocol.Bencode
                 (string, long) pair;
 
                 pair.Item2 = (int)fileInfo["length"];
-                pair.Item1 = (string)fileInfo["name"];
+                pair.Item1 = Encoding.UTF8.GetString(fileInfo["name"] as byte[]);
 
                 file.Files.Add(pair);
             }
@@ -120,21 +133,21 @@ namespace BitTorrentProtocol.Bencode
         private byte[] ReadInfoValue()
         {
             // Text of file
-            string fileText = File.ReadAllText(_torrentPath);
+            string fileText = Encoding.UTF8.GetString(_bencodeText);
 
             // Index of property 'pieces'
             int piecesPropertyIndex = fileText.IndexOf("pieces") + 6;
 
-            StreamReader sr = new StreamReader(_torrentPath);
+            MemoryStream sr = new MemoryStream(_bencodeText);
 
             // Skipping unnessesary bytes
-            sr.BaseStream.Seek(piecesPropertyIndex, SeekOrigin.Begin);
+            sr.Seek(piecesPropertyIndex, SeekOrigin.Begin);
 
             // Reading length of property 'pieces'
             long piecesValueLength = 0;
-            while ((char)sr.Peek() != ':')
+            while ((char)Peek(sr) != ':')
             {
-                char cymbol = (char)sr.Read();
+                char cymbol = (char)sr.ReadByte();
                 piecesValueLength *= 10;
                 piecesValueLength += Convert.ToInt32(cymbol.ToString());
             }
@@ -145,13 +158,10 @@ namespace BitTorrentProtocol.Bencode
             // Index, where info dictionary ends
             long endIndex = piecesPropertyIndex + $"{piecesValueLength}".Length + piecesValueLength + 2;
 
-            // Bytes of file
-            byte[] bytes = File.ReadAllBytes(_torrentPath);
-
             // Bytes of info dictionary
             byte[] infoValueBytes = new byte[endIndex - startIndex];
             for (int i = 0; i < infoValueBytes.Length; i++)
-                infoValueBytes[i] = bytes[i + startIndex];
+                infoValueBytes[i] = _bencodeText[i + startIndex];
 
             return infoValueBytes;
         }
@@ -161,43 +171,43 @@ namespace BitTorrentProtocol.Bencode
             Dictionary<object, object> dictionary = new Dictionary<object, object>();
             do
             {
-                string property = ReadString();
+                byte[] property = ReadString();
                 object value = ReadValue();
 
-                dictionary.Add(property, value);
+                dictionary.Add(Encoding.UTF8.GetString(property), value);
 
-            } while ((char)_reader.Peek() != 'e' && !_reader.EndOfStream);
+            } while ((char)Peek(_reader) != 'e' && _reader.CanRead);
 
-            _reader.Read();
+            _reader.ReadByte();
             return dictionary;
         }
 
-        private string ReadString()
+        private byte[] ReadString()
         {
-            char[] property = null;
-            char symbol = (char)_reader.Read();
+            byte[] property = null;
+            char symbol = (char)_reader.ReadByte();
             int propLength = 0;
             while (symbol != ':')
             {
                 propLength *= 10;
                 propLength += Convert.ToInt32(symbol.ToString());
-                symbol = (char)_reader.Read();
+                symbol = (char)_reader.ReadByte();
             }
 
-            property = new char[propLength];
+            property = new byte[propLength];
             _reader.Read(property, 0, propLength);
 
-            return new string(property);
+            return property;
         }
 
         private int ReadInteger()
         {
             string integer = "";
-            char symbol = (char)_reader.Read();
+            char symbol = (char)_reader.ReadByte();
             do
             {
                 integer += symbol;
-                symbol = (char)_reader.Read();
+                symbol = (char)_reader.ReadByte();
 
             } while (symbol != 'e');
             return Convert.ToInt32(integer);
@@ -210,35 +220,42 @@ namespace BitTorrentProtocol.Bencode
             {
                 list.Add(ReadValue());
 
-            } while ((char)_reader.Peek() != 'e');
+            } while ((char)Peek(_reader) != 'e');
 
-            _reader.Read();
+            _reader.ReadByte();
             return list;
         }
 
         private object ReadValue()
         {
-            char symbol = (char)_reader.Peek();
+            char symbol = (char)Peek(_reader);
             if (Char.IsDigit(symbol))
             {
                 return ReadString();
             }
             else if (symbol == 'd')
             {
-                _reader.Read();
+                _reader.ReadByte();
                 return ReadDictionary();
             }
             else if (symbol == 'i')
             {
-                _reader.Read();
+                _reader.ReadByte();
                 return ReadInteger();
             }
             else if (symbol == 'l')
             {
-                _reader.Read();
+                _reader.ReadByte();
                 return ReadList();
             }
             return null;
+        }
+
+        private int Peek(MemoryStream stream)
+        {
+            int symbol = stream.ReadByte();
+            stream.Position--;
+            return symbol;
         }
     }
 }

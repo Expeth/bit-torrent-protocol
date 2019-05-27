@@ -10,7 +10,6 @@ namespace BitTorrentProtocol.Bencode
     {
         public string InfoHash { get; set; } 
         public string Announce { get; set; }
-        public string Filename { get; set; }
         public string Comment { get; set; }
         public int PieceLength { get; set; }
         public List<string> AnnounceList { get; set; }

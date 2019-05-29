@@ -71,7 +71,6 @@ namespace BitTorrentProtocol.Bencode
             // Adding main information about torrent file
             file.Comment = Encoding.UTF8.GetString(_parsedBencode["comment"] as byte[]);
             file.Announce = Encoding.UTF8.GetString(_parsedBencode["announce"] as byte[]);
-            file.InfoHash = ComputeInfoHash(ReadInfoValue());
             file.PieceLength = (int)fileInfo["piece length"];
 
             // Adding announce-list (trackers)
@@ -117,20 +116,10 @@ namespace BitTorrentProtocol.Bencode
         }
 
         /// <summary>
-        /// Compute SHA1 Hash of Info Dictionary
-        /// </summary>
-        /// <param name="infoValue"></param>
-        /// <returns></returns>
-        private string ComputeInfoHash(byte[] infoValue)
-        {
-            return BitConverter.ToString(SHA1.Create().ComputeHash(infoValue)).Replace("-", "");
-        }
-
-        /// <summary>
         /// Read Info Dictionary
         /// </summary>
         /// <returns></returns>
-        private byte[] ReadInfoValue()
+        public byte[] ReadInfoValue()
         {
             // Text of file
             string fileText = Encoding.UTF8.GetString(_bencodeText);

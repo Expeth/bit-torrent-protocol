@@ -43,6 +43,8 @@
   <ItemGroup>
     <Compile Include="Bencode\BencodeParser.cs" />
     <Compile Include="Bencode\TorrentInfo.cs" />
+    <Compile Include="Encrypting\IEncryptor.cs" />
+    <Compile Include="Encrypting\Sha1Encryptor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

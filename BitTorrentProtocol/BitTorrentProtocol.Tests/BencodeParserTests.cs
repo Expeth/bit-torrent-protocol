@@ -1,5 +1,6 @@
 ﻿using System;
 using BitTorrentProtocol.Bencode;
+using BitTorrentProtocol.Encrypting;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace BitTorrentProtocol.Tests
@@ -14,7 +15,8 @@ namespace BitTorrentProtocol.Tests
         public void ComputeInfoHash_UbuntuFile()
         {
             BencodeParser parser = new BencodeParser(_ubuntuFIlePath);
-            TorrentInfo torrentFile = parser.GetTorrentInfo();
+            TorrentInfo torrentFile = new TorrentInfo();
+            torrentFile.InfoHash = new Sha1Encryptor().GetHash(parser.ReadInfoValue());
 
             Assert.AreEqual("D540FC48EB12F2833163EED6421D449DD8F1CE1F", torrentFile.InfoHash);
         }
@@ -37,7 +39,8 @@ namespace BitTorrentProtocol.Tests
 
             BencodeParser parser = new BencodeParser(_ubuntuFIlePath);
             TorrentInfo expectedTorrentFile = parser.GetTorrentInfo();
-            
+            torrentFile.InfoHash = new Sha1Encryptor().GetHash(parser.ReadInfoValue());
+
             Assert.AreEqual(expectedTorrentFile.Announce, torrentFile.Announce);
             Assert.AreEqual(expectedTorrentFile.Comment, torrentFile.Comment);
             Assert.AreEqual(expectedTorrentFile.PieceLength, torrentFile.PieceLength);
@@ -49,7 +52,8 @@ namespace BitTorrentProtocol.Tests
         public void ComputeInfoHash_ViyFile()
         {
             BencodeParser parser = new BencodeParser(_viyFilePath);
-            TorrentInfo torrentFile = parser.GetTorrentInfo();
+            TorrentInfo torrentFile = new TorrentInfo();
+            torrentFile.InfoHash = new Sha1Encryptor().GetHash(parser.ReadInfoValue());
 
             Assert.AreEqual("FA96C95C4DD0174BEC025A78ABEB6AC286A757BA", torrentFile.InfoHash);
         }
@@ -74,7 +78,8 @@ namespace BitTorrentProtocol.Tests
 
             BencodeParser parser = new BencodeParser(_viyFilePath);
             TorrentInfo expectedTorrentFile = parser.GetTorrentInfo();
-            
+            torrentFile.InfoHash = new Sha1Encryptor().GetHash(parser.ReadInfoValue());
+
             Assert.AreEqual(expectedTorrentFile.Announce, torrentFile.Announce);
             Assert.AreEqual(expectedTorrentFile.Comment, torrentFile.Comment);
             Assert.AreEqual(expectedTorrentFile.PieceLength, torrentFile.PieceLength);

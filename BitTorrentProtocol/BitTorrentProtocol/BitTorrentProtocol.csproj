@@ -47,8 +47,15 @@
   <ItemGroup>
     <Compile Include="Bencode\BencodeParser.cs" />
     <Compile Include="Bencode\TorrentInfo.cs" />
+    <Compile Include="Connections\IConnection.cs" />
+    <Compile Include="Connections\TcpConnection.cs" />
     <Compile Include="Encrypting\IEncryptor.cs" />
     <Compile Include="Encrypting\Sha1Encryptor.cs" />
+    <Compile Include="Messages\Handshake.cs" />
+    <Compile Include="Messages\INetworkData.cs" />
+    <Compile Include="Messages\Message.cs" />
+    <Compile Include="Messages\NetworkDataParser.cs" />
+    <Compile Include="Messages\NetworkDataType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Torrent\PeerParser.cs" />
     <Compile Include="Torrent\TorrentClient.cs" />

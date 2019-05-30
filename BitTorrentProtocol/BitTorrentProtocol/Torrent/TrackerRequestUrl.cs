@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace BitTorrentProtocol.Torrent
 {
+    /// <summary>
+    /// Class for creating request url to tracker
+    /// </summary>
     public static class TrackerRequestUrl
     {
         public static string GetRequestUrl(string announce, string info_hash,

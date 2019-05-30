@@ -18,5 +18,10 @@ namespace BitTorrentProtocol.Encrypting
         {
             return "%" + BitConverter.ToString(SHA1.Create().ComputeHash(value)).Replace("-", "%").ToLower();
         }
+
+        public byte[] GetHashBytes(byte[] value)
+        {
+            return SHA1.Create().ComputeHash(value);
+        }
     }
 }

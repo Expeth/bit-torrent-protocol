@@ -1,5 +1,7 @@
 ﻿using BitTorrentProtocol.Bencode;
+using BitTorrentProtocol.Connections;
 using BitTorrentProtocol.Encrypting;
+using BitTorrentProtocol.Messages;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -10,22 +12,54 @@ using System.Threading.Tasks;
 
 namespace BitTorrentProtocol.Torrent
 {
+    /// <summary>
+    /// Class to work with torrent file.
+    /// </summary>
     public class TorrentClient
     {
+        /// <summary>
+        /// Class to make HTTP requests.
+        /// </summary>
         private RestClient _restClient;
+        /// <summary>
+        /// Parser of Bencode text.
+        /// </summary>
         private BencodeParser _bencodeParser;
+        /// <summary>
+        /// Information about torrent file.
+        /// </summary>
         private TorrentInfo _torrentFile;
+        /// <summary>
+        /// Computing hash of info dictionary from .torrent file.
+        /// </summary>
         private IEncryptor _encryptor;
+        private byte[] _infoHash;
         private long _uploadedBytes;
         private long _downloadedBytes;
         private long _leftBytes;
         private long _interval;
         private long _minInterval;
+        /// <summary>
+        /// IP and port for available peers.
+        /// </summary>
         private List<IPEndPoint> _peers;
+        /// <summary>
+        /// Identificator for local client.
+        /// </summary>
         private string _peerId;
+        /// <summary>
+        /// Connection with peer.
+        /// </summary>
+        private IConnection _connection;
 
-        public TorrentClient(string torrentFile, IEncryptor encryptor)
+       /// <summary>
+       /// Creates an instance.
+       /// </summary>
+       /// <param name="torrentFile">Local path to torrent file.</param>
+       /// <param name="encryptor">Enctypror for computing info_hash. It's desirable to use Sha1Enctyptor</param>
+        public TorrentClient(string torrentFile, IEncryptor encryptor, IConnection connection)
         {
+            _connection = connection;
             _peerId = GeneratePeedId().ToUpper();
             _uploadedBytes = _downloadedBytes = _leftBytes = 0;
             _bencodeParser = new BencodeParser(torrentFile);
@@ -33,6 +67,7 @@ namespace BitTorrentProtocol.Torrent
             _encryptor = encryptor;
             _torrentFile = _bencodeParser.GetTorrentInfo();
             _torrentFile.InfoHash = _encryptor.GetUrlEncodedHash(_bencodeParser.ReadInfoValue());
+            _infoHash = _encryptor.GetHashBytes(_bencodeParser.ReadInfoValue());
         }
 
         public Dictionary<object, object> GetResponseFromTracker()
@@ -55,6 +90,9 @@ namespace BitTorrentProtocol.Torrent
             });
         }
 
+        /// <summary>
+        /// Sends request to tracker to get peers list and other info.
+        /// </summary>
         public void SendRequestToTracker()
         {
             Dictionary<object, object> responseDictionary = GetResponseFromTracker();
@@ -66,7 +104,7 @@ namespace BitTorrentProtocol.Torrent
             Dictionary<object, object> responseDictionary = await GetResponseFromTrackerTask();
             ParseResponseFromTracker(responseDictionary);
         }
-
+        
         private void ParseResponseFromTracker(Dictionary<object, object> dictionary)
         {
             _interval = (int)dictionary["interval"];
@@ -78,11 +116,38 @@ namespace BitTorrentProtocol.Torrent
                 _peers = PeerParser.ParsePeers(dictionary["peers"] as List<Dictionary<object, object>>);
         }
 
+        /// <summary>
+        /// Returns a list of peers.
+        /// </summary>
+        /// <returns></returns>
         public List<IPEndPoint> GetPeers()
         {
             return _peers;
         }
 
+        /// <summary>
+        /// Makes connection with peer.
+        /// </summary>
+        public void ConnectToPeer()
+        {
+            foreach (var i in _peers)
+            {
+                try
+                {
+                    _connection.Connect(i);
+                    break;
+                }
+                catch (Exception) { }
+            }
+
+            INetworkData handshake = new Handshake(_infoHash, _peerId);
+            _connection.SendMessage(handshake);
+        }
+
+        /// <summary>
+        /// Generates an unique ID for local client.
+        /// </summary>
+        /// <returns></returns>
         private string GeneratePeedId()
         {
             Random rand = new Random();

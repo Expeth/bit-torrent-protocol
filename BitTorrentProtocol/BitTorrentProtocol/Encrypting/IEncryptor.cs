@@ -10,5 +10,6 @@ namespace BitTorrentProtocol.Encrypting
     {
         string GetHash(byte[] value);
         string GetUrlEncodedHash(byte[] value);
+        byte[] GetHashBytes(byte[] value);
     }
 }

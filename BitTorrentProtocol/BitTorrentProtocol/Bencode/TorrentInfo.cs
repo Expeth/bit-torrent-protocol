@@ -8,6 +8,9 @@ namespace BitTorrentProtocol.Bencode
 {
     public class TorrentInfo
     {
+        /// <summary>
+        /// Hash of info dictionary in URL-Encoded format.
+        /// </summary>
         public string InfoHash { get; set; } 
         public string Announce { get; set; }
         public string Comment { get; set; }
